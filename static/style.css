@@ -1,0 +1,21 @@
+.active{
+    display: table;
+}
+
+.nonActive{
+    display: none;
+}
+
+.activeButton{
+    font-weight: bold;
+    color: #c10841;
+    background-color: #eee;
+}
+
+#tableAudio th:first-child{
+    width: 34.8%;
+}
+
+#tableVideo th:first-child{
+    width: 34.8%;
+}

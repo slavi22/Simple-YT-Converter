@@ -10,19 +10,18 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+    <script src="{{ url_for('static',filename='script-index-page.js') }}"></script>
 </head>
 
 <body>
     <div class="container">
         <!-- https://getbootstrap.com/docs/5.0/components/buttons/#block-buttons -->
-        <div class="d-grid col-12 justify-content-center">
-            <form action="converted" method="post">
-                <h3 class="text-center mt-5 mb-2">Paste the YT video link below</h3>
-                <div class="col-12">
-                    <input class="w-100 mb-1" id="inputVideoLink" type="text" name="videoLink" placeholder="Enter the video link you wish to convert">
-                </div>
-                <div>
-                    <input class="btn btn-primary w-25" id="btnSubmit" type="submit" value="Convert">
+        <div class="row justify-content-center ms-auto mt-5">
+            <form class="col-5 form-inline justify-content-center" action="/converted" method="post" style="margin-top: 2em;">
+                <h3 class="text-center mb-3">Paste the YT video link below</h3>
+                <div class="col-12 d-inline-flex">
+                    <input class="form-control w-100 me-1" id="inputVideoLink" type="text" name="videoLink" placeholder="Enter the video link you wish to convert">
+                    <button class="btn btn-primary w-25" id="btnSubmit" type="submit">Convert</button>
                 </div>
             </form>
         </div>
