@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, send_file, after_this_request
+from flask import Flask, request, render_template, send_file, session, make_response
 from pytube import YouTube
 from pytube.cli import on_progress
 from configparser import ConfigParser
@@ -6,10 +6,16 @@ import io
 import os
 import ffmpeg
 import re
+import secrets
+import random
+import shutil
 
 config = ConfigParser()
 config.read("config.ini")
 app = Flask(__name__, template_folder = config['Template.folder']['path'])
+secret = secrets.token_urlsafe()
+app.secret_key = secret
+sessionId = None
 link = None
 video_name = None
 video = None
@@ -18,7 +24,11 @@ resolution = None
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    session["session"] = ""
+    resp = make_response(render_template("index.html"))
+    global sessionId
+    sessionId = request.cookies.get("session")
+    return resp
 
 # https://github.com/pytube/pytube/issues/1453#issuecomment-1382458877 -- fixed the slow loading of the page - pytube issue not flask
 @app.route("/converted", methods=['POST'])
@@ -120,92 +130,108 @@ def download_mp3():
     return convert_audio()
 # https://www.google.com/search?q=how+to+merge+faster+with+ffmpeg+python&ei=mdcUZIfNLeGOxc8PxaWBkAs&oq=how+to+merge+faster+with+ffmpeg+pyt&gs_lcp=Cgxnd3Mtd2l6LXNlcnAQAxgAMgcIIRCgARAKOgoIABBHENYEELADOgUIIRCgAToICCEQFhAeEB06CgghEBYQHhAPEB1KBAhBGABQsARY6A5gixtoAXABeACAAc4BiAGiBZIBBTAuMy4xmAEAoAEByAEIwAEB&sclient=gws-wiz-serp -- do this because right now it encodes it thats why it takes so slow
 
+def create_session_folder():
+    global sessionId
+    path = f'./{sessionId}'
+    if not os.path.exists(path):
+        os.makedirs(path)
+
 
 def download_mp3_locally():
-    global link, video_name
+    global link, video_name, sessionId
+    create_session_folder()
     yt = YouTube(link)
-    yt.streams.filter(only_audio=True).first().download(filename=f"{video_name}.mp3")
+    yt.streams.filter(only_audio=True).first().download(filename=f"{video_name}.mp3", output_path=f"./{sessionId}")
 
 #figure out the itags cuz they dont match between videos
 def download_video_1080p_60fps(): 
-    global link, video_name, resolution
+    global link, video_name, resolution, sessionId
+    create_session_folder()
     yt = YouTube(link)
     video = yt.streams.get_by_itag(resolution["r1080_60"]) #use itag to get resolution and fps
-    video.download(filename=f"{video_name}.mp4")
+    video.download(filename=f"{video_name}.mp4", output_path=f"./{sessionId}")
     audio= yt.streams.filter(only_audio=True).first()
-    audio.download(filename=f"{video_name}.mp3")
+    audio.download(filename=f"{video_name}.mp3", output_path=f"./{sessionId}")
+
 def download_video_720p_60fps(): 
-    global link, video_name, resolution
+    global link, video_name, resolution, sessionId
+    create_session_folder()
     yt = YouTube(link)
     video = yt.streams.get_by_itag(resolution["r720_60"])
-    video.download(filename=f"{video_name}.mp4")
+    video.download(filename=f"{video_name}.mp4", output_path=f"./{sessionId}")
     audio= yt.streams.filter(only_audio=True).first()
-    audio.download(filename=f"{video_name}.mp3")   
+    audio.download(filename=f"{video_name}.mp3", output_path=f"./{sessionId}")   
 
 def download_video_1080p_30fps(): 
-    global link, video_name, resolution
+    global link, video_name, resolution, sessionId
+    create_session_folder()
     yt = YouTube(link)
     video = yt.streams.get_by_itag(resolution["r1080_30"])
-    video.download(filename=f"{video_name}.mp4")
+    video.download(filename=f"{video_name}.mp4", output_path=f"./{sessionId}")
     audio= yt.streams.filter(only_audio=True).first()
-    audio.download(filename=f"{video_name}.mp3")
+    audio.download(filename=f"{video_name}.mp3", output_path=f"./{sessionId}")
 
 def download_video_720p_30fps(): 
-    global link, video_name, resolution
+    global link, video_name, resolution, sessionId
+    create_session_folder()
     yt = YouTube(link)
     video = yt.streams.get_by_itag(resolution["r720_30"])
-    video.download(filename=f"{video_name}.mp4")
+    video.download(filename=f"{video_name}.mp4", output_path=f"./{sessionId}")
     audio= yt.streams.filter(only_audio=True).first()
-    audio.download(filename=f"{video_name}.mp3")
+    audio.download(filename=f"{video_name}.mp3", output_path=f"./{sessionId}")
 
 def download_video_480p(): 
-    global link, video_name, resolution
+    global link, video_name, resolution, sessionId
+    create_session_folder()
     yt = YouTube(link)
     video = yt.streams.get_by_itag(resolution["r480"])
-    video.download(filename=f"{video_name}.mp4")
+    video.download(filename=f"{video_name}.mp4", output_path=f"./{sessionId}")
     audio= yt.streams.filter(only_audio=True).first()
-    audio.download(filename=f"{video_name}.mp3")
+    audio.download(filename=f"{video_name}.mp3", output_path=f"./{sessionId}")
 
 def download_video_360p(): 
-    global link, video_name, resolution
+    global link, video_name, resolution, sessionId
+    create_session_folder()
     yt = YouTube(link)
     video = yt.streams.get_by_itag(resolution["r360"])
-    video.download(filename=f"{video_name}.mp4")
+    video.download(filename=f"{video_name}.mp4", output_path=f"./{sessionId}")
     audio= yt.streams.filter(only_audio=True).first()
-    audio.download(filename=f"{video_name}.mp3")
+    audio.download(filename=f"{video_name}.mp3", output_path=f"./{sessionId}")
 
 
 
 #https://stackoverflow.com/questions/24612366/delete-an-uploaded-file-after-downloading-it-from-flask -- used 'Garrett's solution on how to load the out.mp4 to memory (buffer)
 #https://stackoverflow.com/questions/74233100/merging-audio-and-video-in-ffmpeg-python-is-too-slow -- used the method posted by 'Rotem' on copying over instead of reencoding the audio and video together
 def convert_video():
-    global video_name   
-    input_video = ffmpeg.input(f"{video_name}.mp4")
-    input_audio = ffmpeg.input(f"{video_name}.mp3")
+    global video_name, sessionId   
+    input_video = ffmpeg.input(f"./{sessionId}/{video_name}.mp4")
+    input_audio = ffmpeg.input(f"./{sessionId}/{video_name}.mp3")
     #ffmpeg.concat(input_video, input_audio, v=1, a=1).output("out.mp4").run() -- this is very slow but also works
-    ffmpeg.output(input_audio, input_video, "out.mp4", codec="copy").run()
-    converted_file = "out.mp4"
+    ffmpeg.output(input_audio, input_video, f"./{sessionId}/out.mp4", codec="copy").run()
+    converted_file = f"./{sessionId}/out.mp4"
     return_data = io.BytesIO()
     with open(converted_file, "rb") as fo:
         return_data.write(fo.read())
     return_data.seek(0)
-    os.remove(f"{video_name}.mp4")
-    os.remove(f"{video_name}.mp3")
-    os.remove(converted_file)
+    # os.remove(f"{video_name}.mp4")
+    # os.remove(f"{video_name}.mp3")
+    # os.remove(converted_file)
+    shutil.rmtree(f"./{sessionId}", ignore_errors=True)
     return send_file(return_data, as_attachment=True, download_name=f"{video_name}.mp4", mimetype="video/mp4") #mimetype should not include any lets say bulgarians characters as it breaks the encoding, thats why i put the mimetype to be 'video/mp4' instead of '{video_name}/mp4'
 
 def convert_audio():
-    global video_name
-    input_audio = ffmpeg.input(f"{video_name}.mp3")
+    global video_name, sessionId
+    input_audio = ffmpeg.input(f"./{sessionId}/{video_name}.mp3")
     #cant use .mp3 extension for the out file below because it throws an exception because apparently u cant use codec='copy' if u have 2 mp3s
-    ffmpeg.output(input_audio, "out.mp4", codec="copy").run() 
-    downloaded_file = "out.mp4"
+    ffmpeg.output(input_audio, f"./{sessionId}/out.mp4", codec="copy").run() 
+    downloaded_file = f"./{sessionId}/out.mp4"
     return_data = io.BytesIO()
     with open(downloaded_file, "rb") as fo:
         return_data.write(fo.read())
     return_data.seek(0)
-    os.remove(f"{video_name}.mp3")
-    os.remove(downloaded_file)
+    # os.remove(f"{video_name}.mp3")
+    # os.remove(downloaded_file)
+    shutil.rmtree(f"./{sessionId}", ignore_errors=True)
     return send_file(return_data, as_attachment=True, download_name=f"{video_name}.mp3", mimetype="audio/mp4")
 
 #https://github.com/JNYH/pytube/blob/master/pytube_sample_code.ipynb -- find a way to do this somehow??, kind of did idk??
