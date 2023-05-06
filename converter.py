@@ -30,7 +30,8 @@ def index():
     sessionId = request.cookies.get("session")
     return resp
 
-# https://github.com/pytube/pytube/issues/1453#issuecomment-1382458877 -- fixed the slow loading of the page - pytube issue not flask
+# https://github.com/pytube/pytube/issues/1453#issuecomment-1382458877 -- fixed the slow loading of the page - pytube issue not flask -- old doesnt work anymore
+# https://github.com/pytube/pytube/issues/1553#issuecomment-1532902806 -- fixed the newly introduced slow download issue - 06.05.2023 -- new
 @app.route("/converted", methods=['POST'])
 def converted_page():
     global link
