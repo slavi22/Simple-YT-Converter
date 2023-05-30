@@ -237,4 +237,4 @@ def convert_audio():
 
 #https://github.com/JNYH/pytube/blob/master/pytube_sample_code.ipynb -- find a way to do this somehow??, kind of did idk??
 if __name__ == '__main__':
-    app.run(debug=True, port=5600)
+    app.run(debug=False, port=5600)
