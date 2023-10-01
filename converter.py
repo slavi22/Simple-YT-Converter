@@ -7,8 +7,8 @@ import os
 import ffmpeg
 import re
 import secrets
-import random
 import shutil
+from urllib.request import urlopen
 
 config = ConfigParser()
 config.read("config.ini")
@@ -39,14 +39,14 @@ def converted_page():
     yt = YouTube(link)
     global video_name
     pattern = "\s*[\\/:*?\"<>|]"
-    video_name = re.sub(pattern, "", yt.title)
+    video_name = re.sub(pattern, "", get_video_title(link))
     global resolution
     resolution = get_itags_for_video(yt)
     #print(f"resolution is: {resolution}")
     if("r1080_60" in resolution):
         if(resolution["r1080_60"] != None or resolution["r720_60"] != None or resolution["r480"] != None or resolution["r360"] != None):
             return render_template(
-                "converted.html", title = yt.title, fps = "60fps", video_thumbnail = yt.thumbnail_url,
+                "converted.html", title = video_name, fps = "60fps", video_thumbnail = yt.thumbnail_url,
                 render_1080_table = True if(resolution['r1080_60']!=None) else False, r1080 = "1080p - 60fps" if (resolution['r1080_60']!=None) else "", r1080_file_size= f"{round(yt.streams.get_by_itag(resolution['r1080_60']).filesize_mb + yt.streams.filter(only_audio=True).first().filesize_mb, 1)} MB" if (resolution['r1080_60']!=None) else "",
                 render_720_table = True if(resolution['r720_60']!=None) else False, r720 = "720p - 60fps" if (resolution['r720_60']!=None) else "", r720_file_size= f"{round(yt.streams.get_by_itag(resolution['r720_60']).filesize_mb + yt.streams.filter(only_audio=True).first().filesize_mb, 1)} MB" if (resolution['r720_60']!=None) else "",
                 render_480_table = True if(resolution['r480']!=None) else False, r480 = "480p" if (resolution['r480']!=None) else "", r480_file_size= f"{round(yt.streams.get_by_itag(resolution['r480']).filesize_mb + yt.streams.filter(only_audio=True).first().filesize_mb, 1)} MB" if (resolution['r480']!=None) else "",
@@ -55,7 +55,7 @@ def converted_page():
     else:
         if(resolution['r1080_30']!=None or resolution['r720_30'] != None or resolution['r480'] != None or resolution['r360'] != None):
             return render_template(
-                "converted.html", title = yt.title, fps = "30fps", video_thumbnail = yt.thumbnail_url,
+                "converted.html", title = video_name, fps = "30fps", video_thumbnail = yt.thumbnail_url+"/maxresdefault.jpg",
                 render_1080_table = True if(resolution['r1080_30']!=None) else False, r1080 = "1080p - 30fps" if (resolution['r1080_30']!=None) else "", r1080_file_size= f"{round(yt.streams.get_by_itag(resolution['r1080_30']).filesize_mb + yt.streams.filter(only_audio=True).first().filesize_mb, 1)} MB" if (resolution['r1080_30']!=None) else "",
                 render_720_table = True if(resolution['r720_30']!=None) else False, r720 = "720p - 30fps" if (resolution['r720_30']!=None) else "", r720_file_size= f"{round(yt.streams.get_by_itag(resolution['r720_30']).filesize_mb + yt.streams.filter(only_audio=True).first().filesize_mb, 1)} MB" if (resolution['r720_30']!=None) else "",
                 render_480_table = True if(resolution['r480']!=None) else False, r480 = "480p" if (resolution['r480']!=None) else "", r480_file_size= f"{round(yt.streams.get_by_itag(resolution['r480']).filesize_mb + yt.streams.filter(only_audio=True).first().filesize_mb, 1)} MB" if (resolution['r480']!=None) else "",
@@ -93,6 +93,18 @@ def get_itags_for_video(yt: YouTube):
     else:
         return dict30
 
+#as of pytube version 15.0.0, the title property sometimes doesnt give the full title,solution for this is the function below -> https://github.com/pytube/pytube/issues/1783#issuecomment-1708730934   
+def get_video_title(url):
+    page = urlopen(url)
+    html_bytes = page.read()
+    html = html_bytes.decode("utf-8")
+    title_index = html.find("<title>")
+    start_index = title_index + len("<title>")
+    end_index = html.find("</title>")
+    title = html[start_index:end_index]
+    if "- YouTube" in title:
+        full_title = title.replace("- YouTube", "")
+    return str(full_title)
 
 #thats what im trying to do now -- https://stackoverflow.com/questions/71820529/how-do-i-combine-pytube-audio-and-video-streams-in-a-flask-app-and-let-the-user
 @app.route("/converted/download/1080p60fps", methods=['GET'])
